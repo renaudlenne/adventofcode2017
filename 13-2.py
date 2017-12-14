@@ -1,46 +1,19 @@
 #!/usr/bin/python
 import sys
+from itertools import cycle, islice
 
-
-class Firewall:
-    def __init__(self, size):
-        self.size = size
-        self.reset()
-
-    def reset(self):
-        self.position = 0
-        self._dir = "inc"
-
-    def move(self):
-        if self.size == 1:
-            return
-        if self._dir == "inc":
-            if self.position + 1 < self.size:
-                self.position += 1
-            else:
-                self._dir = "dec"
-                self.position -= 1
-        else:
-            if self.position == 0:
-                self._dir = "inc"
-                self.position += 1
-            else:
-                self.position -= 1
-
-
-def try_passing(firewalls, delay):
+def try_passing(firewalls, delay, list_size, fw_sizes):
     for fw in firewalls.values():
-        fw.reset()
-    for t in range(delay):
-        for fw in firewalls.values():
-            fw.move()
-    for i in range(max(firewalls.keys()) + 1):
-        if i in firewalls.keys():
-            fw = firewalls[i]
-            if fw.position == 0:
+        while True:
+            if next(fw) == 0:
+                break
+    for idx, fw in firewalls.items():
+        list(islice(fw, delay % fw_sizes[idx]))
+    for i in range(list_size):
+        for idx, fw in firewalls.items():
+            nxt = next(fw)
+            if i == idx and nxt == 1:
                 return True
-        for fw in firewalls.values():
-            fw.move()
     return False
 
 
@@ -52,14 +25,20 @@ if __name__ == "__main__":
 
     filepath = sys.argv[1]
     firewalls = dict()
+    fw_sizes = dict()
     with open(filepath) as fp:
         for line in fp:
             parts = line.split(': ')
             row = int(parts[0].strip())
             size = int(parts[1].strip())
-            firewalls[row] = Firewall(size)
+            lst = list(range(size))+list(range((size-2)*-1, 0))
+            firewalls[row] = cycle(lst)
+            fw_sizes[row] = len(lst)
+    list_size = max(firewalls.keys()) + 1
 
     delay = 0
-    while try_passing(firewalls, delay):
+    while try_passing(firewalls, delay, list_size, fw_sizes):
+        if delay % 10000 == 0:
+            print(delay)
         delay += 1
     print(delay)
